@@ -38,7 +38,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
             sudo mkdir -p /var/www/frontend /var/www/backend
             sudo chown -R $USER:$USER /var/www
@@ -50,7 +50,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           source: "frontend/dist/*"
           target: "/var/www/frontend"
           strip_components: 2
@@ -61,7 +61,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           source: "backend/*"
           target: "/var/www/backend"
           strip_components: 1
@@ -72,7 +72,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
             cd /var/www/backend
             echo "MONGO_URI=${{ secrets.MONGO_URI }}" > .env
@@ -88,7 +88,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
             cd /var/www/backend
             npm ci
@@ -102,7 +102,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_SSH_KEY }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
             sudo nginx -t
             sudo systemctl reload nginx
