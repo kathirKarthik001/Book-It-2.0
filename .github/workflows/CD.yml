@@ -1,4 +1,4 @@
-name: Continuous Deployment
+name: Deploy to EC2 (Production)
 
 on:
   push:
@@ -8,73 +8,99 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    environment: development
-
     steps:
-      # Checkout private repo 
+      # 1️⃣ Checkout release tag
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Node for build
+      # 2️⃣ Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      # Build frontend (Vite)
+      # 3️⃣ Build frontend
       - name: Build frontend
+        env:
+          VITE_API_URI_AUTH: ${{ secrets.VITE_API_URI_AUTH }}
+          VITE_API_URI_BOOK: ${{ secrets.VITE_API_URI_BOOK }}
+          VITE_API_URI_HALL: ${{ secrets.VITE_API_URI_HALL }}
         run: |
           cd frontend
           npm ci
           npm run build
 
-      # Copy frontend build → EC2
+      # 4️⃣ Prepare EC2 directories
+      - name: Prepare directories on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_SSH_KEY }}
+          script: |
+            sudo mkdir -p /var/www/frontend /var/www/backend
+            sudo chown -R $USER:$USER /var/www
+            sudo chmod -R 755 /var/www
+
+      # 5️⃣ Deploy frontend → Nginx
       - name: Deploy frontend
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_SSH_KEY }}
           source: "frontend/dist/*"
           target: "/var/www/frontend"
           strip_components: 2
 
-      # Copy backend source → EC2
-      - name: Deploy backend source
+      # 6️⃣ Deploy backend source
+      - name: Deploy backend
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_SSH_KEY }}
           source: "backend/*"
           target: "/var/www/backend"
           strip_components: 1
 
-      # Install deps & restart API
-      - name: Install backend deps & restart
+      # create env file in backend
+      - name: Create .env file
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_SSH_KEY }}
           script: |
-            set -e
+            cd /var/www/backend
+            echo "MONGO_URI=${{ secrets.MONGO_URI }}" > .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "PORT=${{ secrets.PORT }}" >> .env
+            echo "NODE_ENV=production" >> .env
+            echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> .env
+            echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> .env
+
+      # 7️⃣ Install deps & restart backend
+      - name: Start backend with PM2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_SSH_KEY }}
+          script: |
             cd /var/www/backend
             npm ci
-            pm2 start index.js --name api --update-env || pm2 restart api
+            pm2 delete api || true
+            pm2 start ecosystem.config.js --env production
             pm2 save
 
-      # Reload nginx
+      # 8️⃣ Reload nginx
       - name: Reload nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_SSH_KEY }}
           script: |
             sudo nginx -t
             sudo systemctl reload nginx
