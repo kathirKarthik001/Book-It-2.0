@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/header";
-import { useDispatch, useSelector } from "react-redux";
+// import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import AdminPanel from "../components/AdminPanel";
 import Reserve from "../components/Reserve";
