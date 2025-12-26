@@ -8,6 +8,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    environment: development
+
     steps:
       # 1️⃣ Checkout release tag
       - name: Checkout code
