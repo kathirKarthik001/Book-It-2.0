@@ -93,7 +93,7 @@ jobs:
             cd /var/www/backend
             npm ci
             pm2 delete api || true
-            pm2 start ecosystem.config.js --env production
+            pm2 start ecosystem.config.js
             pm2 save
 
       # 8️⃣ Reload nginx
