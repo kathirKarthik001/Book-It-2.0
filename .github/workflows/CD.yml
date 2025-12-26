@@ -38,6 +38,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           source: "frontend/dist/*"
           target: "/var/www/frontend"
+          strip_components: 2
 
       # Copy backend source → EC2
       - name: Deploy backend source
@@ -49,6 +50,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           source: "backend/*"
           target: "/var/www/backend"
+          strip_components: 1
 
       # Install deps & restart API
       - name: Install backend deps & restart
